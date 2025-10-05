@@ -6,7 +6,7 @@
 </div>
 
 <div align="center">
-  <img src=https://raw.githubusercontent.com/markovuser/Time-Servers/main/assets/TimeServer.jpg>
+  <img src=https://raw.githubusercontent.com/markovuser/Time-Servers/main/assets/TimeServer.jpg><br><br>
 </div>
 
 <div align="center">
