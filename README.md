@@ -18,8 +18,7 @@
 
 <div align="center">
   
-[<img src="https://raw.githubusercontent.com/markovuser/Time-Servers/main/assets/download.png" width="250" alt="Download">](https://github.com/markovuser/Time-Servers/releases/latest/download/Time-Servers-setup.exe)
-
-<a href="https://github.com/markovuser/Time-Servers/releases/latest/download/Time.Servers.zip" target="_blank" title="FileList"><b><span style="font-display:auto;font-size: 40px;">Download Portable</span></b></a>
+[<img src="https://raw.githubusercontent.com/markovuser/Time-Servers/main/assets/download.png" width="250" alt="Download" title="Installer">](https://github.com/markovuser/Time-Servers/releases/latest/download/Time-Servers-setup.exe)<br>
+[<img src="https://raw.githubusercontent.com/markovuser/Time-Servers/main/assets/downloadport.png" width="250" alt="Download" title="Portable">](https://github.com/markovuser/Time-Servers/releases/latest/download/Time.Servers.zip)
 
 </div>
