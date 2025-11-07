@@ -1,5 +1,5 @@
 <div align="center">
-# Time Servers
+<h1># Time Servers</h1>
 </div>
 <div align=center>
 <b>A utility for synchronizing with Windows time servers.</b><br></br>
