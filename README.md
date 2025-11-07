@@ -23,3 +23,11 @@
 [<img src="https://raw.githubusercontent.com/markovuser/Time-Servers/main/assets/downloadport.png" width="250" alt="Download" title="Portable">](https://github.com/markovuser/Time-Servers/releases/latest/download/Time.Servers.zip)
 
 </div>
+
+<div align="center">
+  
+## 📫 Contacts/Контакты
+[![Gmail](https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:markov.user@gmail.com)
+[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/markovuser)
+
+</div>
