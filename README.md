@@ -7,7 +7,7 @@
 </div>
 <hr>
 <div align="center">
-  <img src=https://raw.githubusercontent.com/markovuser/Time-Servers/main/assets/TimeServer.jpg><br><br>
+  <img src=https://raw.githubusercontent.com/markovuser/Time-Servers/main/assets/app-1.png><br><br>
 </div>
 <hr>
 <div align="center">
