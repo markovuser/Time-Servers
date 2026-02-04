@@ -20,7 +20,7 @@
 <div align="center">
   
 [<img src="https://raw.githubusercontent.com/markovuser/Time-Servers/main/assets/download.png" width="250" alt="Download" title="Installer">](https://github.com/markovuser/Time-Servers/releases/latest/download/Time-Servers-setup.exe)<br>
-[<img src="https://raw.githubusercontent.com/markovuser/Time-Servers/main/assets/downloadport.png" width="250" alt="Download" title="Portable">](https://github.com/markovuser/Time-Servers/releases/latest/download/Time.Servers.zip)
+[<img src="https://raw.githubusercontent.com/markovuser/Time-Servers/main/assets/Portable.png" width="250" alt="Download" title="Portable">](https://github.com/markovuser/Time-Servers/releases/latest/download/Time.Servers.zip)
 
 </div>
 
