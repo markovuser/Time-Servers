@@ -105,9 +105,9 @@
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <VerInfo_Keys>CompanyName=Nikolay Markov;FileDescription=Time Servers;FileVersion=1.7.26.204;InternalName=Time Servers;LegalCopyright=Copyright © 2010-2026 All Rights Reserved.;LegalTrademarks=Nikolay Markov;OriginalFilename=Time Servers;ProgramID=Time Servers;ProductName=Time Servers;ProductVersion=1.7.26.204;Comments=Time Servers</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Nikolay Markov;FileDescription=Time Servers;FileVersion=1.7.26.205;InternalName=Time Servers;LegalCopyright=Copyright © 2010-2026 All Rights Reserved.;LegalTrademarks=Nikolay Markov;OriginalFilename=Time Servers;ProgramID=Time Servers;ProductName=Time Servers;ProductVersion=1.7.26.205;Comments=Time Servers</VerInfo_Keys>
         <VerInfo_Release>26</VerInfo_Release>
-        <VerInfo_Build>204</VerInfo_Build>
+        <VerInfo_Build>205</VerInfo_Build>
         <DCC_ExeOutput>..\..\Application\Time Servers\</DCC_ExeOutput>
         <Icon_MainIcon>TimeServers_Icon1.ico</Icon_MainIcon>
         <AppExecutionLevel>highestAvailable</AppExecutionLevel>

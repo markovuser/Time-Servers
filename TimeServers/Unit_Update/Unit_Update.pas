@@ -1,24 +1,25 @@
-﻿Unit Unit_Update;
+﻿unit Unit_Update;
 
-Interface
+interface
 
-Uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
-  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.ComCtrls,
-  Vcl.StdCtrls, Vcl.Menus, Math, IdComponent, IdBaseComponent, IdTCPConnection,
-  IdTCPClient, IdHTTP, System.Win.TaskbarCore, Vcl.Taskbar, IdSSLOpenSSL, ShellApi,
-  IniFiles, IdIOHandler, IdIOHandlerSocket, IdIOHandlerStack, IdSSL, registry, System.JSON,
-  System.Generics.Collections, FileInfoUtils;
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.StdCtrls, Vcl.Menus, Math, IdComponent,
+  IdBaseComponent, IdTCPConnection, IdTCPClient, IdHTTP, System.Win.TaskbarCore,
+  Vcl.Taskbar, IdSSLOpenSSL, ShellApi, IniFiles, IdIOHandler, IdIOHandlerSocket,
+  IdIOHandlerStack, IdSSL, registry, System.JSON, System.Generics.Collections,
+  FileInfoUtils;
 
-Type
-  CheckThread = Class(TThread)
-  Private
-  Protected
-    Procedure Execute; Override;
-  End;
+type
+  CheckThread = class(TThread)
+  private
+  protected
+    procedure Execute; override;
+  end;
 
-Type
-  TForm10 = Class(TForm)
+type
+  TForm10 = class(TForm)
     MemoUpdateLog: TMemo;
     TabControlButtons: TTabControl;
     ButtonDownload: TButton;
@@ -45,139 +46,191 @@ Type
     GroupBoxOption: TGroupBox;
     CheckBoxQuickUpdate: TCheckBox;
     CheckBoxForceUpdate: TCheckBox;
-    Procedure UpdateApp(Server: String);
-    Procedure Check(ServerVersion, LocalVersion: String);
-    Procedure log(Const AText: String);
-    Procedure GetLatestReleaseBody;
-    Function FormatGitHubDate(Const GitHubDate: String): String;
-    Function GetSystemProxy(Out ProxyServer: String; Out ProxyPort: Integer; Out Enabled: Boolean): Boolean;
-    Procedure FormCreate(Sender: TObject);
-    Procedure ButtonDownloadClick(Sender: TObject);
-    Procedure IdHTTP1Work(ASender: TObject; AWorkMode: TWorkMode; AWorkCount: Int64);
-    Procedure IdHTTP1WorkBegin(ASender: TObject; AWorkMode: TWorkMode; AWorkCountMax: Int64);
-    Procedure IdHTTP1WorkEnd(ASender: TObject; AWorkMode: TWorkMode);
-    Procedure FormShow(Sender: TObject);
-    Procedure ButtonCloseClick(Sender: TObject);
-    Procedure FormClose(Sender: TObject; Var Action: TCloseAction);
-    Procedure CheckBoxForceUpdateClick(Sender: TObject);
-  Private
+    procedure UpdateApp(Server: string);
+    procedure Check(ServerVersion, LocalVersion: string);
+    procedure log(const AText: string);
+    procedure GetLatestReleaseBody;
+    function FormatGitHubDate(const GitHubDate: string): string;
+    function GetSystemProxy(out ProxyServer: string; out ProxyPort: Integer; out Enabled: Boolean): Boolean;
+    procedure ButtonDownloadClick(Sender: TObject);
+    procedure IdHTTP1Work(ASender: TObject; AWorkMode: TWorkMode; AWorkCount: Int64);
+    procedure IdHTTP1WorkBegin(ASender: TObject; AWorkMode: TWorkMode; AWorkCountMax: Int64);
+    procedure IdHTTP1WorkEnd(ASender: TObject; AWorkMode: TWorkMode);
+    procedure FormShow(Sender: TObject);
+    procedure ButtonCloseClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure CheckBoxForceUpdateClick(Sender: TObject);
+
+    procedure SimplePortableUpdate(const ZipInAppDir, CurrentExePath: string);
+  private
     { Private declarations }
     AbortUpdate: Boolean;
-  Public
-  Protected
-    Procedure CreateParams(Var Params: TCreateParams); Override;
-  End;
+  public
+  protected
+    procedure CreateParams(var Params: TCreateParams); override;
+  end;
 
-Var
+var
   Form10: TForm10;
   i: Int64;
   Thread: CheckThread;
   version: Integer;
-  FileDownloadUrl: String;
-  DownloadVersion: String;
-  ProxyServer: String;
+  FileDownloadUrl: string;
+  DownloadVersion: string;
+  ProxyServer: string;
   ProxyPort: Integer;
   ProxyEnabled: Boolean;
 
-Implementation
+implementation
 
-Uses
+uses
   Unit_Base;
 {$R *.dfm}
 
-Procedure TForm10.CreateParams(Var Params: TCreateParams);
-Begin
-  Inherited CreateParams(Params);
-  Params.ExStyle := Params.ExStyle Or WS_EX_APPWINDOW;
+procedure TForm10.CreateParams(var Params: TCreateParams);
+begin
+  inherited CreateParams(Params);
+  Params.ExStyle := Params.ExStyle or WS_EX_APPWINDOW;
   Params.WndParent := GetDesktopWindow;
-End;
+end;
 
-Function ExtractFileNameFromURL(Const URL: String): String;
-Var
+function ExtractFileNameFromURL(const URL: string): string;
+var
   i: Integer;
-Begin
+begin
   Result := '';
   // Ищем последний слэш в URL
-  For i := Length(URL) Downto 1 Do
-  Begin
-    If URL[i] = '/' Then
-    Begin
+  for i := Length(URL) downto 1 do
+  begin
+    if URL[i] = '/' then
+    begin
       Result := Copy(URL, i + 1, Length(URL) - i);
       Break;
-    End;
-  End;
+    end;
+  end;
 
   // Если слэш не найден, возвращаем исходную строку
-  If Result = '' Then
+  if Result = '' then
     Result := URL;
-End;
+end;
 
-Procedure TForm10.log(Const AText: String);
-Begin
+procedure TForm10.log(const AText: string);
+begin
   MemoUpdateLog.Lines.Add('    ' + AText);
   // Автопрокрутка
   MemoUpdateLog.SelStart := Length(MemoUpdateLog.Text);
   SendMessage(MemoUpdateLog.Handle, EM_SCROLLCARET, 0, 0);
-End;
+end;
 
-Function GetTempDirectory: String;
-Var
-  Buffer: Array[0..MAX_PATH] Of Char;
-Begin
+function GetTempDirectory: string;
+var
+  Buffer: array[0..MAX_PATH] of Char;
+begin
   GetTempPath(MAX_PATH, Buffer);
   Result := IncludeTrailingPathDelimiter(StrPas(Buffer));
-End;
+end;
 
-Function CompareVersions(Const Ver1, Ver2: String): Integer;
-Var
+function CompareVersions(const Ver1, Ver2: string): Integer;
+var
   Parts1, Parts2: TStringList;
   i, Num1, Num2: Integer;
-Begin
+begin
   Result := 0;
   Parts1 := TStringList.Create;
   Parts2 := TStringList.Create;
-  Try
+  try
     Parts1.Delimiter := '.';
     Parts1.DelimitedText := Ver1;
     Parts2.Delimiter := '.';
     Parts2.DelimitedText := Ver2;
-    For i := 0 To Max(Parts1.Count - 1, Parts2.Count - 1) Do
-    Begin
-      If i < Parts1.Count Then
+    for i := 0 to Max(Parts1.Count - 1, Parts2.Count - 1) do
+    begin
+      if i < Parts1.Count then
         Num1 := StrToIntDef(Parts1[i], 0)
-      Else
+      else
         Num1 := 0;
-      If i < Parts2.Count Then
+      if i < Parts2.Count then
         Num2 := StrToIntDef(Parts2[i], 0)
-      Else
+      else
         Num2 := 0;
-      If Num1 > Num2 Then
+      if Num1 > Num2 then
         Exit(1) // Ver1 > Ver2
-      Else If Num1 < Num2 Then
+      else if Num1 < Num2 then
         Exit(-1); // Ver1 < Ver2
-    End;
-  Finally
+    end;
+  finally
     Parts1.Free;
     Parts2.Free;
-  End;
-End;
+  end;
+end;
 
-Procedure TForm10.ButtonCloseClick(Sender: TObject);
-Begin
-  Try
+procedure TForm10.ButtonCloseClick(Sender: TObject);
+begin
+  try
     Close;
-  Except
-  End;
-End;
+  except
+  end;
+end;
 
-Procedure TForm10.ButtonDownloadClick(Sender: TObject);
-Var
-  Params: String;
-Begin
-  Try
-    Case ButtonDownload.Tag Of
+procedure TForm10.SimplePortableUpdate(const ZipInAppDir, CurrentExePath: string);
+var
+  BatFile: TextFile;
+  BatName, AppName, TempDir: string;
+begin
+  AppName := ExtractFileName(CurrentExePath);
+  TempDir := GetTempDirectory;
+  BatName := TempDir + '\update_' + FormatDateTime('hhnnss', Now) + '.bat';
+
+  AssignFile(BatFile, BatName);
+  try
+    Rewrite(BatFile);
+
+    // ТОЧНО ТОТ ЖЕ BAT
+    Writeln(BatFile, '@echo off');
+    Writeln(BatFile, 'cd /d "' + ExtractFilePath(CurrentExePath) + '"');
+    Writeln(BatFile, '');
+    Writeln(BatFile, 'echo Killing app...');
+    Writeln(BatFile, 'taskkill /F /IM "' + AppName + '" >nul 2>&1');
+    Writeln(BatFile, 'timeout /t 2 >nul');
+    Writeln(BatFile, '');
+    Writeln(BatFile, 'echo Extracting...');
+    Writeln(BatFile, 'powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $zip = [System.IO.Compression.ZipFile]::OpenRead(''' + ExtractFileName(ZipInAppDir) + '''); foreach ($entry in $zip.Entries) { $target = $entry.FullName; if (-not $entry.Name) { [System.IO.Directory]::CreateDirectory($target) | Out-Null; } else { try { [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $target, $true) } catch { Write-Host (''Skipping: '' + $entry.FullName) } } }; $zip.Dispose(); Write-Host ''Extraction complete''"');
+    Writeln(BatFile, '');
+    Writeln(BatFile, 'echo Deleting ZIP...');
+    Writeln(BatFile, 'del "' + ExtractFileName(ZipInAppDir) + '"');
+    Writeln(BatFile, '');
+    Writeln(BatFile, 'echo Starting app...');
+    Writeln(BatFile, 'start "" "' + AppName + '"');
+    Writeln(BatFile, '');
+    Writeln(BatFile, 'echo Done');
+    Writeln(BatFile, 'timeout /t 2 >nul');
+    Writeln(BatFile, 'del "%~f0"');
+
+  finally
+    CloseFile(BatFile);
+  end;
+
+  // Проверяем создался ли файл
+  if FileExists(BatName) then
+  begin
+    // Запускаем
+    ShellExecute(0, 'open', PChar(BatName), nil, nil, SW_HIDE);
+    Halt;
+  end
+  else
+  begin
+    ShowMessage('Failed to create update script!');
+  end;
+end;
+
+procedure TForm10.ButtonDownloadClick(Sender: TObject);
+var
+  Params: string;
+begin
+  try
+    case ButtonDownload.Tag of
       0:
-        Begin
+        begin
           AbortUpdate := false;
           ButtonDownload.Tag := 1;
           ButtonDownload.Caption := LangCancel.Caption;
@@ -188,23 +241,28 @@ Begin
           UpdateApp(FileDownloadUrl);
           log(LangDownloadComplet.Caption);
 
-          If portable = false Then
-          Begin
-            If CheckBoxQuickUpdate.Checked = TRUE Then
-            Begin
+          if portable = false then
+          begin
+            if CheckBoxQuickUpdate.Checked = TRUE then
+            begin
               Params := '/SILENT /CLOSEAPPLICATIONS /SUPPRESSMSGBOXES /LANG=' + LangLocal + ' /MERGETASKS="runcmd1"';
-              ShellExecute(0, 'open', pchar(GetTempDirectory + '\' + ExtractFileNameFromURL(FileDownloadUrl)), pchar(Params), Nil, SW_SHOWNORMAL);
+              ShellExecute(0, 'open', pchar(GetTempDirectory + '\' + ExtractFileNameFromURL(FileDownloadUrl)), pchar(Params), nil, SW_SHOWNORMAL);
               Application.Terminate;
               Application.ProcessMessages;
-            End;
-
-            If CheckBoxQuickUpdate.Checked = false Then
-            Begin
-              ShellExecute(0, 'open', pchar(GetTempDirectory + '\' + ExtractFileNameFromURL(FileDownloadUrl)), Nil, Nil, SW_SHOWNORMAL);
-              // Application.Terminate;
+            end
+            else
+            begin
+              ShellExecute(0, 'open', pchar(GetTempDirectory + '\' + ExtractFileNameFromURL(FileDownloadUrl)), nil, nil, SW_SHOWNORMAL);
               Application.ProcessMessages;
-            End;
-          End;
+            end;
+          end
+          else
+          begin
+            if CheckBoxQuickUpdate.Checked = TRUE then
+            begin
+              SimplePortableUpdate(ExtractFilePath(ParamStr(0)) + ExtractFileNameFromURL(FileDownloadUrl), Application.ExeName);
+            end;
+          end;
 
           ButtonDownload.Tag := 0;
           ButtonDownload.Caption := LangDownload.Caption;
@@ -212,170 +270,170 @@ Begin
           ProgressBarUpdate.Visible := false;
           GroupBoxOption.Enabled := TRUE;
           Application.ProcessMessages;
-        End;
+        end;
       1:
-        Begin
+        begin
           ButtonDownload.Tag := 0;
           ButtonDownload.Caption := LangDownload.Caption;
           ProgressBarUpdate.Position := 0;
           ProgressBarUpdate.Visible := false;
           ButtonClose.Enabled := TRUE;
           GroupBoxOption.Enabled := TRUE;
-          Try
+          try
             AbortUpdate := TRUE;
-            If Assigned(IdHTTP1) Then
+            if Assigned(IdHTTP1) then
               IdHTTP1.Disconnect;
             ProgressBarUpdate.Position := 0;
             log(LangUpdateCancel.Caption);
             log(LangNoDownload.Caption);
             DeleteFile(GetTempDirectory + '\' + ExtractFileNameFromURL(FileDownloadUrl));
-          Except
-          End;
-        End;
-    End;
-  Except
-  End;
-End;
+          except
+          end;
+        end;
+    end;
+  except
+  end;
+end;
 
-Function ShortenPathForLog(Const Path: String): String;
-Const
+function ShortenPathForLog(const Path: string): string;
+const
   MAX_PATH_LENGTH = 60;
-Var
-  Drive, Dir, FileName: String;
+var
+  Drive, Dir, FileName: string;
   AvailableLength: Integer;
-Begin
-  If Length(Path) <= MAX_PATH_LENGTH Then
-  Begin
+begin
+  if Length(Path) <= MAX_PATH_LENGTH then
+  begin
     Result := Path;
     Exit;
-  End;
+  end;
 
   Drive := ExtractFileDrive(Path);
   FileName := ExtractFileName(Path);
   AvailableLength := MAX_PATH_LENGTH - Length(Drive) - Length(FileName) - 4;
-  If AvailableLength > 10 Then
-  Begin
+  if AvailableLength > 10 then
+  begin
     Dir := ExtractFilePath(Path);
     Delete(Dir, 1, Length(Drive));
-    While (Dir <> '') And (Length(Dir) > AvailableLength) Do
-    Begin
-      If Pos('\', Dir) > 0 Then
+    while (Dir <> '') and (Length(Dir) > AvailableLength) do
+    begin
+      if Pos('\', Dir) > 0 then
         Delete(Dir, 1, Pos('\', Dir))
-      Else
+      else
         Break;
-    End;
+    end;
     Result := Drive + '\...\' + Dir + FileName;
-  End
-  Else
-  Begin
+  end
+  else
+  begin
     Result := Drive + '\...\' + FileName;
-    If Length(Result) > MAX_PATH_LENGTH Then
-    Begin
+    if Length(Result) > MAX_PATH_LENGTH then
+    begin
       FileName := Copy(ExtractFileName(Path), 1, 15) + '...' + ExtractFileExt(Path);
       Result := Drive + '\...\' + FileName;
-    End;
-  End;
-  If Length(Result) > MAX_PATH_LENGTH Then
+    end;
+  end;
+  if Length(Result) > MAX_PATH_LENGTH then
     Result := Copy(Path, 1, MAX_PATH_LENGTH - 3) + '...';
-End;
+end;
 
-Procedure TForm10.UpdateApp(Server: String);
-Var
+procedure TForm10.UpdateApp(Server: string);
+var
   LoadStream: TMemoryStream;
   SSLIOHandler: TIdSSLIOHandlerSocketOpenSSL;
-Begin
-  SSLIOHandler := Nil;
-  Try
+begin
+  SSLIOHandler := nil;
+  try
     LoadStream := TMemoryStream.Create;
-    SSLIOHandler := TIdSSLIOHandlerSocketOpenSSL.Create(Nil);
+    SSLIOHandler := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
     SSLIOHandler.SSLOptions.Method := sslvTLSv1_2;
     SSLIOHandler.SSLOptions.SSLVersions := [sslvTLSv1_2];
     IdHTTP1.IOHandler := SSLIOHandler;
-    If GetSystemProxy(ProxyServer, ProxyPort, ProxyEnabled) And ProxyEnabled Then
-    Begin
+    if GetSystemProxy(ProxyServer, ProxyPort, ProxyEnabled) and ProxyEnabled then
+    begin
       IdHTTP1.ProxyParams.ProxyServer := ProxyServer;
       IdHTTP1.ProxyParams.ProxyPort := ProxyPort;
-    End;
+    end;
     IdHTTP1.HandleRedirects := TRUE;
     IdHTTP1.Request.BasicAuthentication := TRUE;
     IdHTTP1.Request.UserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64;rv:12.0) Gecko/20100101 Firefox/12.0';
     // portable false
-    If portable = false Then
-    Begin
+    if portable = false then
+    begin
       log(ShortenPathForLog(GetTempDirectory + ExtractFileNameFromURL(FileDownloadUrl)));
       IdHTTP1.Get(IdHTTP1.URL.PathEncode(FileDownloadUrl), LoadStream);
       LoadStream.SaveToFile(GetTempDirectory + ExtractFileNameFromURL(FileDownloadUrl));
       Application.ProcessMessages;
-    End;
+    end;
     // portable true
-    If portable = TRUE Then
-    Begin
-      CheckBoxQuickUpdate.Checked := false;
+    if portable = TRUE then
+    begin
+      //CheckBoxQuickUpdate.Checked := false;
       log(ShortenPathForLog(ExtractFilePath(ParamStr(0)) + ExtractFileNameFromURL(FileDownloadUrl)));
       IdHTTP1.Get(IdHTTP1.URL.PathEncode(FileDownloadUrl), LoadStream);
       LoadStream.SaveToFile(ExtractFilePath(ParamStr(0)) + ExtractFileNameFromURL(FileDownloadUrl));
       Application.ProcessMessages;
-    End;
+    end;
     LoadStream.Free;
-  Finally
-    IdHTTP1.IOHandler := Nil;
+  finally
+    IdHTTP1.IOHandler := nil;
     SSLIOHandler.Free;
-  End;
-End;
+  end;
+end;
 
-Function TForm10.GetSystemProxy(Out ProxyServer: String; Out ProxyPort: Integer; Out Enabled: Boolean): Boolean;
-Var
+function TForm10.GetSystemProxy(out ProxyServer: string; out ProxyPort: Integer; out Enabled: Boolean): Boolean;
+var
   Reg: TRegistry;
-  ProxyStr: String;
+  ProxyStr: string;
   PosColon: Integer;
-Begin
+begin
   Result := false;
   ProxyServer := '';
   ProxyPort := 0;
   Enabled := false;
   Reg := TRegistry.Create;
-  Try
+  try
     Reg.RootKey := HKEY_CURRENT_USER;
-    If Reg.OpenKey('\Software\Microsoft\Windows\CurrentVersion\Internet Settings', false) Then
-    Begin
+    if Reg.OpenKey('\Software\Microsoft\Windows\CurrentVersion\Internet Settings', false) then
+    begin
       Enabled := Reg.ReadInteger('ProxyEnable') = 1;
-      If Enabled Then
-      Begin
+      if Enabled then
+      begin
         ProxyStr := Reg.ReadString('ProxyServer');
-        If ProxyStr <> '' Then
-        Begin
+        if ProxyStr <> '' then
+        begin
           PosColon := Pos(':', ProxyStr);
-          If PosColon > 0 Then
-          Begin
+          if PosColon > 0 then
+          begin
             ProxyServer := Copy(ProxyStr, 1, PosColon - 1);
             ProxyPort := StrToIntDef(Copy(ProxyStr, PosColon + 1, Length(ProxyStr)), 8080);
             Result := TRUE;
-          End;
-        End;
-      End;
+          end;
+        end;
+      end;
       Reg.CloseKey;
-    End;
-  Finally
+    end;
+  finally
     Reg.Free;
-  End;
-End;
+  end;
+end;
 
-Procedure TForm10.GetLatestReleaseBody;
-Var
+procedure TForm10.GetLatestReleaseBody;
+var
   HTTP: TIdHTTP;
   SSLHandler: TIdSSLIOHandlerSocketOpenSSL;
   JSON: TJSONObject;
-  ProxyServer: String;
+  ProxyServer: string;
   ProxyPort: Integer;
   ProxyEnabled: Boolean;
-  BodyText: String;
-  Lines: TArray<String>;
+  BodyText: string;
+  Lines: TArray<string>;
   I: Integer;
-Begin
-  HTTP := TIdHTTP.Create(Nil);
-  SSLHandler := TIdSSLIOHandlerSocketOpenSSL.Create(Nil);
-  JSON := Nil;
-  Try
+begin
+  HTTP := TIdHTTP.Create(nil);
+  SSLHandler := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
+  JSON := nil;
+  try
     SSLHandler.SSLOptions.Method := sslvTLSv1_2;
     SSLHandler.SSLOptions.SSLVersions := [sslvTLSv1_2];
     HTTP.IOHandler := SSLHandler;
@@ -383,45 +441,45 @@ Begin
     HTTP.ConnectTimeout := 3000;
     HTTP.ReadTimeout := 3000;
 
-    If GetSystemProxy(ProxyServer, ProxyPort, ProxyEnabled) And ProxyEnabled Then
-    Begin
+    if GetSystemProxy(ProxyServer, ProxyPort, ProxyEnabled) and ProxyEnabled then
+    begin
       HTTP.ProxyParams.ProxyServer := ProxyServer;
       HTTP.ProxyParams.ProxyPort := ProxyPort;
-    End;
+    end;
 
-    Try
-      JSON := TJSONObject.ParseJSONValue(HTTP.Get(ApiGithub)) As TJSONObject;
-      If Assigned(JSON) Then
-      Begin
+    try
+      JSON := TJSONObject.ParseJSONValue(HTTP.Get(ApiGithub)) as TJSONObject;
+      if Assigned(JSON) then
+      begin
         BodyText := JSON.GetValue('body').Value;
         Lines := BodyText.Split([#13#10, #13, #10], TStringSplitOptions.None);
         log('====================');
         log(LangVersionChanges.Caption);
         log('');
-        For I := 0 To High(Lines) Do
-        Begin
+        for I := 0 to High(Lines) do
+        begin
           log(Lines[I]);
-        End;
+        end;
         log('====================');
         Application.ProcessMessages;
-      End;
-    Except
-    End;
-  Finally
+      end;
+    except
+    end;
+  finally
     HTTP.Free;
     SSLHandler.Free;
-    If Assigned(JSON) Then
+    if Assigned(JSON) then
       JSON.Free;
-  End;
-End;
+  end;
+end;
 
-Function TForm10.FormatGitHubDate(Const GitHubDate: String): String;
-Var
+function TForm10.FormatGitHubDate(const GitHubDate: string): string;
+var
   Year, Month, Day, Hour, Min, Sec: Integer;
   DateTime: TDateTime;
-  CleanDate: String;
-Begin
-  Try
+  CleanDate: string;
+begin
+  try
     CleanDate := StringReplace(GitHubDate, 'Z', '', [rfReplaceAll]);
     CleanDate := StringReplace(CleanDate, 'T', ' ', [rfReplaceAll]);
     Year := StrToInt(Copy(CleanDate, 1, 4));
@@ -432,43 +490,43 @@ Begin
     Sec := StrToInt(Copy(CleanDate, 18, 2));
     DateTime := EncodeDate(Year, Month, Day) + EncodeTime(Hour, Min, Sec, 0);
     Result := FormatDateTime('dd.mm.yyyy hh:nn:ss', DateTime);
-  Except
-    On E: Exception Do
-    Begin
+  except
+    on E: Exception do
+    begin
       Result := 'Date error: ' + GitHubDate;
-    End;
-  End;
-End;
+    end;
+  end;
+end;
 
-Procedure TForm10.Check(ServerVersion, LocalVersion: String);
-Var
+procedure TForm10.Check(ServerVersion, LocalVersion: string);
+var
   SSLIOHandler: TIdSSLIOHandlerSocketOpenSSL;
-  ProxyServer: String;
+  ProxyServer: string;
   ProxyPort: Integer;
   ProxyEnabled: Boolean;
   JSON: TJSONObject;
-  Response: String;
+  Response: string;
   JSONArray: TJSONArray;
-  DownloadUrl: String;
+  DownloadUrl: string;
   Asset: TJSONObject;
-  AssetName: String;
+  AssetName: string;
   FileSize, FileSizePort: Int64;
-  UploadDate: String;
+  UploadDate: string;
   i: Integer;
-Begin
-  SSLIOHandler := Nil;
+begin
+  SSLIOHandler := nil;
   FileSizePort := 0;
   FileSize := 0;
-  Try
-    SSLIOHandler := TIdSSLIOHandlerSocketOpenSSL.Create(Nil);
+  try
+    SSLIOHandler := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
     SSLIOHandler.SSLOptions.Method := sslvTLSv1_2;
     SSLIOHandler.SSLOptions.SSLVersions := [sslvTLSv1_2];
     IdHTTP2.IOHandler := SSLIOHandler;
-    If GetSystemProxy(ProxyServer, ProxyPort, ProxyEnabled) And ProxyEnabled Then
-    Begin
+    if GetSystemProxy(ProxyServer, ProxyPort, ProxyEnabled) and ProxyEnabled then
+    begin
       IdHTTP2.ProxyParams.ProxyServer := ProxyServer;
       IdHTTP2.ProxyParams.ProxyPort := ProxyPort;
-    End;
+    end;
     IdHTTP2.HandleRedirects := TRUE;
     IdHTTP2.Request.BasicAuthentication := TRUE;
     IdHTTP2.Request.UserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64;rv:12.0) Gecko/20100101 Firefox/12.0';
@@ -476,186 +534,180 @@ Begin
     IdHTTP2.ReadTimeout := 3000;
 
     Response := IdHTTP2.Get(ApiGithub);
-    JSON := TJSONObject.ParseJSONValue(Response) As TJSONObject;
-    Try
+    JSON := TJSONObject.ParseJSONValue(Response) as TJSONObject;
+    try
       ServerVersion := JSON.GetValue('name').Value;
       DownloadVersion := ServerVersion;
 
-      If Not portable Then
-      Begin
-        JSONArray := JSON.GetValue('assets') As TJSONArray;
-        If JSONArray.Count > 0 Then
-        Begin
-          Asset := JSONArray.Items[0] As TJSONObject;
+      if not portable then
+      begin
+        JSONArray := JSON.GetValue('assets') as TJSONArray;
+        if JSONArray.Count > 0 then
+        begin
+          Asset := JSONArray.Items[0] as TJSONObject;
           DownloadUrl := Asset.GetValue('browser_download_url').Value;
           FileDownloadUrl := DownloadUrl;
           FileSize := Asset.GetValue<Int64>('size');
-          UploadDate := Asset.GetValue<String>('created_at');
-        End;
-      End;
+          UploadDate := Asset.GetValue<string>('created_at');
+        end;
+      end;
 
-      If portable Then
-      Begin
-        JSONArray := JSON.GetValue('assets') As TJSONArray;
-        If Assigned(JSONArray) And (JSONArray.Count > 0) Then
-        Begin
-          For i := 0 To JSONArray.Count - 1 Do
-          Begin
-            Asset := JSONArray.Items[i] As TJSONObject;
-            AssetName := Asset.GetValue<String>('name');
-            DownloadUrl := Asset.GetValue<String>('browser_download_url');
-            If (LowerCase(ExtractFileExt(AssetName)) = '.zip') Or (Pos('.zip', LowerCase(AssetName)) > 0) Then
-            Begin
+      if portable then
+      begin
+        JSONArray := JSON.GetValue('assets') as TJSONArray;
+        if Assigned(JSONArray) and (JSONArray.Count > 0) then
+        begin
+          for i := 0 to JSONArray.Count - 1 do
+          begin
+            Asset := JSONArray.Items[i] as TJSONObject;
+            AssetName := Asset.GetValue<string>('name');
+            DownloadUrl := Asset.GetValue<string>('browser_download_url');
+            if (LowerCase(ExtractFileExt(AssetName)) = '.zip') or (Pos('.zip', LowerCase(AssetName)) > 0) then
+            begin
               FileDownloadUrl := DownloadUrl;
               FileSizePort := Asset.GetValue<Int64>('size');
-              UploadDate := Asset.GetValue<String>('created_at');
+              UploadDate := Asset.GetValue<string>('created_at');
               Break;
-            End;
-          End;
-        End;
-      End;
+            end;
+          end;
+        end;
+      end;
 
-    Finally
+    finally
       JSON.Free;
-    End;
+    end;
 
     version := CompareVersions(ServerVersion, LocalVersion);
-    If (version = 0) Or (version = -1) Then
-    Begin
+    if (version = 0) or (version = -1) then
+    begin
       log(LangNoUpdate.Caption);
       log('====================');
       log(LangVersionComputer.Caption + ' ' + LocalVersion);
       log(LangServerVersion.Caption + ' ' + ServerVersion);
       log('====================');
-      If Not portable Then
-      Begin
+      if not portable then
+      begin
         log('[Setup]');
         log('====================');
         log(ExtractFileNameFromURL(FileDownloadUrl) + ' [' + GetNormalSize(FileSize) + ']' + ' - ' + FormatGitHubDate(UploadDate));
-      End;
-      If portable Then
-      Begin
+      end;
+      if portable then
+      begin
         log('[Portable]');
         log('====================');
         log(ExtractFileNameFromURL(FileDownloadUrl) + ' [' + GetNormalSize(FileSizePort) + ']' + ' - ' + FormatGitHubDate(UploadDate));
-      End;
+      end;
       GetLatestReleaseBody;
-    End;
-    If version = 1 Then
-    Begin
+    end;
+    if version = 1 then
+    begin
       log(LangUpdateAvailable.Caption + ' ' + ServerVersion);
       log('====================');
       log(LocalVersion + ' ---> ' + ServerVersion);
-      If Not portable Then
-      Begin
+      if not portable then
+      begin
         log('====================');
         log('[Setup]');
         log(ExtractFileNameFromURL(FileDownloadUrl) + ' [' + GetNormalSize(FileSize) + ']' + ' - ' + FormatGitHubDate(UploadDate));
-      End;
-      If portable Then
-      Begin
+      end;
+      if portable then
+      begin
         log('====================');
         log('[Portable]');
         log(ExtractFileNameFromURL(FileDownloadUrl) + ' [' + GetNormalSize(FileSizePort) + ']' + ' - ' + FormatGitHubDate(UploadDate));
-      End;
+      end;
       GetLatestReleaseBody;
-    End;
+    end;
 
-  Finally
-    IdHTTP2.IOHandler := Nil;
+  finally
+    IdHTTP2.IOHandler := nil;
     SSLIOHandler.Free;
-  End;
-End;
+  end;
+end;
 
-Procedure TForm10.CheckBoxForceUpdateClick(Sender: TObject);
-Begin
-  If CheckBoxForceUpdate.Checked Then
-  Begin
+procedure TForm10.CheckBoxForceUpdateClick(Sender: TObject);
+begin
+  if CheckBoxForceUpdate.Checked then
+  begin
     Form10.ButtonDownload.Tag := 0;
     Form10.ButtonDownload.Enabled := TRUE;
-  End;
-  If CheckBoxForceUpdate.Checked = false Then
-  Begin
+  end;
+  if CheckBoxForceUpdate.Checked = false then
+  begin
     Form10.ButtonDownload.Tag := 0;
     Form10.ButtonDownload.Enabled := false;
-  End;
-End;
+  end;
+end;
 
-Procedure CheckThread.Execute;
-Begin
+procedure CheckThread.Execute;
+begin
   Thread.FreeOnTerminate := TRUE;
   Form10.GroupBoxOption.Enabled := false;
   Form10.ButtonDownload.Enabled := false;
   // Form10.Check(DownloadVersion, '1');
   Form10.Check(DownloadVersion, GetFileVersion(ParamStr(0)));
-  If Form10.CheckBoxForceUpdate.Checked = false Then
-  Begin
-    If (version = 0) Or (version = -1) Then
-    Begin
+  if Form10.CheckBoxForceUpdate.Checked = false then
+  begin
+    if (version = 0) or (version = -1) then
+    begin
       Form10.ButtonDownload.Tag := 0;
       Form10.ButtonDownload.Enabled := false;
       Form10.GroupBoxOption.Enabled := true;
-    End;
-    If version = 1 Then
-    Begin
+    end;
+    if version = 1 then
+    begin
       Form10.ButtonDownload.Tag := 0;
       Form10.ButtonDownload.Enabled := TRUE;
       Form10.GroupBoxOption.Enabled := true;
-    End;
-  End;
+    end;
+  end;
 
-End;
+end;
 
-Procedure TForm10.FormClose(Sender: TObject; Var Action: TCloseAction);
-Begin
+procedure TForm10.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
   MemoUpdateLog.Clear;
-End;
+end;
 
-Procedure TForm10.FormCreate(Sender: TObject);
-Begin
-  CheckBoxQuickUpdate.Checked := Not portable;
-  CheckBoxQuickUpdate.Enabled := Not portable;
-End;
-
-Procedure TForm10.FormShow(Sender: TObject);
-Begin
+procedure TForm10.FormShow(Sender: TObject);
+begin
   MemoUpdateLog.Clear;
   CheckBoxForceUpdate.Checked := False;
   Thread := CheckThread.Create(false);
   Thread.FreeOnTerminate := TRUE;
   Thread.Priority := tpNormal;
-End;
+end;
 
-Procedure TForm10.IdHTTP1Work(ASender: TObject; AWorkMode: TWorkMode; AWorkCount: Int64);
-Begin
-  Try
-    If AbortUpdate = TRUE Then
-    Begin
+procedure TForm10.IdHTTP1Work(ASender: TObject; AWorkMode: TWorkMode; AWorkCount: Int64);
+begin
+  try
+    if AbortUpdate = TRUE then
+    begin
       IdHTTP1.Disconnect;
-    End;
+    end;
     TaskbarUpdate.ProgressState := TTaskBarProgressState.Normal;
     ProgressBarUpdate.Position := Round(AWorkCount / i);
     TaskbarUpdate.ProgressValue := ProgressBarUpdate.Position;
     Application.ProcessMessages;
-  Except
-  End;
-End;
+  except
+  end;
+end;
 
-Procedure TForm10.IdHTTP1WorkBegin(ASender: TObject; AWorkMode: TWorkMode; AWorkCountMax: Int64);
-Begin
-  Try
+procedure TForm10.IdHTTP1WorkBegin(ASender: TObject; AWorkMode: TWorkMode; AWorkCountMax: Int64);
+begin
+  try
     ProgressBarUpdate.Max := 100;
     TaskbarUpdate.ProgressMaxValue := ProgressBarUpdate.Max;
     i := Round(AWorkCountMax / ProgressBarUpdate.Max);
     Application.ProcessMessages;
-  Except
-  End;
-End;
+  except
+  end;
+end;
 
-Procedure TForm10.IdHTTP1WorkEnd(ASender: TObject; AWorkMode: TWorkMode);
-Begin
+procedure TForm10.IdHTTP1WorkEnd(ASender: TObject; AWorkMode: TWorkMode);
+begin
   TaskbarUpdate.ProgressState := TTaskBarProgressState.None;
-End;
+end;
 
-End.
+end.
 

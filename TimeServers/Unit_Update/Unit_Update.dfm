@@ -16,7 +16,6 @@
   Font.Style = []
   Position = poDesktopCenter
   OnClose = FormClose
-  OnCreate = FormCreate
   OnShow = FormShow
   TextHeight = 15
   object MemoUpdateLog: TMemo
@@ -83,6 +82,8 @@
       Height = 17
       Cursor = crHandPoint
       Caption = #1041#1099#1089#1090#1088#1086#1077' '#1086#1073#1085#1086#1074#1083#1077#1085#1080#1077
+      Checked = True
+      State = cbChecked
       TabOrder = 1
     end
     object CheckBoxForceUpdate: TCheckBox
